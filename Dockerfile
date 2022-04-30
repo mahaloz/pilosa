@@ -1,22 +1,22 @@
-FROM golang:1.13.0 as builder
+from golang:1.17 as builder
 
-COPY . pilosa
+RUN apt update && apt install clang -y
 
-RUN cd pilosa && CGO_ENABLED=0 make install FLAGS="-a"
+COPY . /go/pilosa
 
-FROM alpine:3.9.4
+# install source of target
+RUN mkdir ~/gopath && \
+    export GOPATH="$HOME/gopath" && \
+    export PATH="$PATH:$GOPATH/bin" && \
+    export PATH="$PATH:$GOPATH/bin" && \
+    cd /go/pilosa/ && \
+    make install-build-deps && \
+    make install && \
+    cd /go/pilosa/roaring && \
+    go get -u github.com/dvyukov/go-fuzz/go-fuzz github.com/dvyukov/go-fuzz/go-fuzz-build && \
+    go-fuzz-build -libfuzzer --func FuzzRoaringOps -o fuzz_roaring_ops.a . && \
+    clang -fsanitize=fuzzer fuzz_roaring_ops.a  -o fuzz_roaring_ops && \
+    cp fuzz_roaring_ops /fuzz_roaring_ops
 
-LABEL maintainer "dev@pilosa.com"
-
-RUN apk add --no-cache curl jq
-
-COPY --from=builder /go/bin/pilosa /pilosa
-
-COPY LICENSE /LICENSE
-COPY NOTICE /NOTICE
-
-EXPOSE 10101
-VOLUME /data
-
-ENTRYPOINT ["/pilosa"]
-CMD ["server", "--data-dir", "/data", "--bind", "http://0.0.0.0:10101"]
+FROM golang:1.17
+COPY --from=builder /fuzz_roaring_ops /

@@ -1,0 +1,5 @@
+project: pilosa
+target: pilosa-roaring-ops
+
+cmds:
+  - cmd: /fuzz_roaring_ops
