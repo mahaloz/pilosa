@@ -8,7 +8,6 @@ COPY . /go/pilosa
 RUN mkdir ~/gopath && \
     export GOPATH="$HOME/gopath" && \
     export PATH="$PATH:$GOPATH/bin" && \
-    export PATH="$PATH:$GOPATH/bin" && \
     cd /go/pilosa/ && \
     make install-build-deps && \
     make install && \
